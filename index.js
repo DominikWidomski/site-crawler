@@ -41,6 +41,8 @@ function loadIdentifiers(s) {
 	return ids;
 }
 
+const queued = false;
+
 const identifiers = loadIdentifiers();
 
 const c = new Crawler({
@@ -53,9 +55,17 @@ const c = new Crawler({
 			var document = jsdom.jsdom(res.body);
 			// const $ = res.$;
 
+			console.log(chalk.bgCyan.black(`Path: ${res.req.path}`));
+
 			for(let idPath of Object.keys(identifiers)) {
 				identifiers[idPath](document);
 			}
+
+			Array.from(document.querySelector('a')).forEach(a => {
+				if(!queued && a.href !== '' || a.href !== '#') {
+					c.queue(a.href);
+				}
+			});
 		}
 
 		done();
@@ -66,4 +76,10 @@ const c = new Crawler({
 
 // @TODO: fails silently if can't access?
 // Waits for timeout I imagine
-c.queue('http://127.0.0.1:9090/about-us');
+let pathToCrawl = url.parse(process.argv[2] || '');
+
+if(!pathToCrawl.hostname) {
+	pathToCrawl = 'http://127.0.0.1:9090/';
+}
+
+c.queue(pathToCrawl.href);
