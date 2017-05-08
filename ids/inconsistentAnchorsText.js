@@ -2,21 +2,28 @@ const url = require('url');
 const chalk = require('chalk');
 
 function leftPad(string, length, padChar = ' ') {
-    return Array(length).fill(padChar).join('') + string;
+    return `${padChar.repeat(length)}${string}`;
 }
 
 function formatOutput(repeatingLinks) {
     for(const [pathname, labels] of Object.entries(repeatingLinks)) {
         console.log(chalk.red(`${pathname}: `));
 
+        const out = [];
         for(const { label } of labels) {
-            console.log(leftPad(label.replace(/\s+/gi, ' ').trim(), pathname.length));
+            // @TODO: Can be done better, I'm sure
+            // also an option to squash, I guess output is another thing still
+            if(!out.includes(label)) {
+                console.log(leftPad(label.replace(/\s+/gi, ' ').trim(), pathname.length + 2));
+                out.push(label);
+            }
         }
     }
 }
 
 /**
  * Check for inconsistent labels for the same anchors
+ * @TODO: check for and label external urls
  */
 module.exports = function inconsistentAnchorsText(document) {
 	const repeatingLinks = Array.from(document.querySelectorAll('a')).reduce((obj, a) => {
@@ -24,8 +31,12 @@ module.exports = function inconsistentAnchorsText(document) {
             return obj;
         }
 
-        console.log(chalk.orange(a.href));
         const uri = url.parse(a.href);
+
+        // @TODO: pathname is `null` when href is `#` etc.
+        if(!uri.pathname) {
+            return obj;
+        }
 
         if(!obj[uri.pathname]) {
             obj[uri.pathname] = [];
@@ -57,7 +68,7 @@ module.exports = function inconsistentAnchorsText(document) {
     }
 
     if(Object.keys(repeatingLinks).length) {
-        console.log(chalk.bgRed(`Repeating links labels:`));
+        console.log(chalk.bgRed.black(`Repeating links labels:`));
         formatOutput(repeatingLinks);
     }
 
